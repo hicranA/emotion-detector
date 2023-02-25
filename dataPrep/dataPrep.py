@@ -14,6 +14,11 @@ from pyspark.sql.functions import col, when
 from pyspark.ml.feature import HashingTF, IDF, Tokenizer, CountVectorizer
 from pyspark.ml.feature import StopWordsRemover
 from pyspark.ml import Pipeline
+from pyspark.ml.feature import ChiSqSelector
+import spacy
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+from pyspark.ml.feature import NGram
 
 
 
@@ -35,6 +40,11 @@ def clean(df):
     # Remove words 1, 2 char
     df = df.withColumn("text_c", F.regexp_replace("text_c", r"\b\w{1,2}\b", ""))
     return df
+# Define a function to apply the lemmatizer to a text
+def lemmatize_text(text):
+    doc = nlp(text)
+    lemmas = [token.lemma_ for token in doc]
+    return " ".join(filter(None, lemmas))
 
 # reads txt file and splits in to two columns 
 
@@ -77,6 +87,16 @@ if __name__ == "__main__":
     df_testing_clean= clean(df_testing_class )
     df_val_clean =clean(df_val_class)
 
+    #step 2 lemitazing
+    # Load the spaCy model
+    nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+    # Define a UDF to apply the lemmatizer to a column
+    lemmatize_udf = udf(lemmatize_text, StringType())
+
+    df_training_clean = df_training_clean.withColumn("text_c", lemmatize_udf(df_training_clean["text_c"]))
+    df_testing_clean = df_testing_clean.withColumn("text_c", lemmatize_udf(df_testing_clean["text_c"]))
+    df_val_clean = df_val_clean.withColumn("text_c", lemmatize_udf(df_val_clean["text_c"]))
+    print("lemitizing is over")
     # since we have unbalanced data we are adding weight
     w_joy = df_training_clean.filter('class == 0').count()/ training_size
     w_sadness = df_training_clean.filter('class == 1').count()/ training_size
@@ -112,9 +132,55 @@ if __name__ == "__main__":
     data_model  = pipeline_p.fit(df_training_weight)
     print(dir(data_model ))
 
-    # Transform
+    # Transformation 1 
     transformed_training= data_model.transform(df_training_weight)
     transformed_test= data_model.transform(df_testing_clean)
     transformed_val= data_model.transform(df_val_clean)
+
+    # data model 2 
+    print("stage 2")
+    ngram = NGram(n=2, inputCol=remover.getOutputCol(),  outputCol="ngrams")
+    hashingTF = HashingTF(inputCol="ngrams", outputCol="rawFeatures", numFeatures=10000)
+    idf = IDF(inputCol=countVectorizer.getOutputCol(), outputCol="featuresIDF")
+    selector = ChiSqSelector(numTopFeatures=200, featuresCol=idf.getOutputCol(), outputCol="features", labelCol="class")
+    # Crate a preprocessing pipeline wiht 5 stages
+    pipeline_2 = Pipeline(stages=[tokenizer,remover,ngram, hashingTF, idf, selector])
+    # Learn the data preprocessing model
+    data_model_2 = pipeline_2.fit(df_training_weight)
+
+    # Transform the data 2
+    transformed_training_p2= data_model_2.transform(df_training_weight)
+    transformed_test_p2 = data_model_2.transform(df_testing_clean)
+    transformed_val_p2 = data_model_2.transform(df_val_clean)
+
+    #data model 3 row text no cleaning only transforming to numbers 
+    #Tokenize the text
+    tokenizer = Tokenizer(inputCol="text", outputCol="words")
+    # Create a count vectoriser
+    countVectorizer = CountVectorizer(inputCol=tokenizer.getOutputCol(), outputCol="rawFeatures", vocabSize=1000)
+    # Create pipeline
+    pipeline_3= Pipeline(stages=[tokenizer,countVectorizer, idf])
+    #create a data model 
+    data_model_3  = pipeline_3.fit(df_training_weight)
+
+    # Transform 3 
+    transformed_training_p3= data_model_3.transform(df_training_weight)
+    transformed_test_p3 = data_model_3.transform(df_testing_clean)
+    transformed_val_p3 = data_model_3.transform(df_val_clean)
+
+    # save the PySpark DataFrame to a Parquet file
+    #data model 1
+    transformed_training.write.parquet("data/transformed_training.parquet")
+    transformed_test.write.parquet("data/transformed_test.parquet")
+    transformed_val.write.parquet("data/transformed_val.parquet")
+    #data model 2
+    transformed_training_p2.write.parquet("data/transformed_training_p2.parquet")
+    transformed_test_p2.write.parquet("data/transformed_test_p2.parquet")
+    transformed_val_p2.write.parquet("data/transformed_val_p2.parquet")
+    #data model 3
+    transformed_training_p3.write.parquet("data/transformed_training_p3.parquet")
+    transformed_test_p3.write.parquet("data/transformed_test_p3.parquet")
+    transformed_val_p3.write.parquet("data/transformed_val_p3.parquet")
+
 
 
