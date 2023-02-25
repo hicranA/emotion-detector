@@ -35,23 +35,20 @@ if __name__ == "__main__":
     df_val_m1 = spark.read.parquet("data/transformed_val.parquet")
     print(df_testing_m1.show(5))
 
-    import time
+    # import time
     classifier = LinearSVC(maxIter=10, regParam=0.1, featuresCol = "featuresIDF", weightCol="weight", labelCol="label")
     # Define OneVsRest strategy
     ovr = OneVsRest(classifier=classifier, labelCol="label", featuresCol="featuresIDF", weightCol="weight")
     pipeline = Pipeline(stages=[ovr])
-    start = time.time()
-    print(f"Training started.")
     model = pipeline.fit(df_training_m1)
-    print(f"Model created in {time.time()-start:.2f}s.")
     m_metrics_l(model,df_val_m1)
-    print(f"Total time {time.time()-start:.2f}s.")
 
     evaluator = MulticlassClassificationEvaluator(predictionCol="prediction", labelCol="label", metricName="f1")
 
     # Define the hyperparameter grid
     param_grid = ParamGridBuilder() \
      .addGrid(classifier.maxIter, [10, 50, 100]) \
+     .addGrid(classifier.regParam,  [0.01, 0.1, 1.0])\
         .build()
     
     # Define the cross-validator
@@ -62,9 +59,7 @@ if __name__ == "__main__":
 
     # Evaluate the best model on the validation set
     best_model = cv_model.bestModel
-    # Evaluate the best model on the validation set
-    best_model = cv_model.bestModel
-    predictions = best_model.transform(df_val_m1)
+    predictions = best_model.transform(df_testing_m1)
     f1 = evaluator.evaluate(predictions)
     print("f1 on validation set for best model:", f1)
 

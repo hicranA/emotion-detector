@@ -59,7 +59,7 @@ if __name__ == "__main__":
   
     # reading documents to df 
     df_training = readFile(file_path= file_path_training)
-    df_testing = readFile(file_path= file_path_training)
+    df_testing = readFile(file_path= file_path_testing)
     df_val = readFile(file_path= file_path_val)
     # print("sample")
     # print(df_val.show(4,False))
