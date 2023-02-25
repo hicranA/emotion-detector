@@ -44,7 +44,7 @@ def clean(df):
 def lemmatize_text(text):
     doc = nlp(text)
     lemmas = [token.lemma_ for token in doc]
-    return " ".join(filter(None, lemmas))
+    return " ".join(lemmas)
 
 # reads txt file and splits in to two columns 
 
@@ -74,12 +74,12 @@ if __name__ == "__main__":
     training_size = df_training.count()
     #converting class labels
     
-    string_indexer = StringIndexer(inputCol="emotion",outputCol="class")
+    string_indexer = StringIndexer(inputCol="emotion",outputCol="label")
 
     # fit the StringIndexer to the DataFrame and transform the DataFrame to add the 'class_numeric' column
-    df_training_class = string_indexer.fit(df_training).transform(df_training).withColumn('class', col('class').cast("integer"))
-    df_testing_class = string_indexer.fit(df_testing).transform(df_testing).withColumn('class', col('class').cast("integer"))
-    df_val_class = string_indexer.fit(df_val).transform(df_val).withColumn('class', col('class').cast("integer"))
+    df_training_class = string_indexer.fit(df_training).transform(df_training).withColumn('label', col('label').cast("integer"))
+    df_testing_class = string_indexer.fit(df_testing).transform(df_testing).withColumn('label', col('label').cast("integer"))
+    df_val_class = string_indexer.fit(df_val).transform(df_val).withColumn('label', col('label').cast("integer"))
     # print(df_training_class.show(2))
 
     # step 1 cleaning 
@@ -98,20 +98,20 @@ if __name__ == "__main__":
     df_val_clean = df_val_clean.withColumn("text_c", lemmatize_udf(df_val_clean["text_c"]))
     print("lemitizing is over")
     # since we have unbalanced data we are adding weight
-    w_joy = df_training_clean.filter('class == 0').count()/ training_size
-    w_sadness = df_training_clean.filter('class == 1').count()/ training_size
-    w_anger = df_training_clean.filter('class == 2').count()/ training_size
-    w_fear = df_training_clean.filter('class == 3').count()/ training_size
-    w_love = df_training_clean.filter('class == 4').count()/ training_size
-    w_surprize = df_training_clean.filter('class == 5').count()/ training_size
+    w_joy = df_training_clean.filter('label == 0').count()/ training_size
+    w_sadness = df_training_clean.filter('label == 1').count()/ training_size
+    w_anger = df_training_clean.filter('label == 2').count()/ training_size
+    w_fear = df_training_clean.filter('label == 3').count()/ training_size
+    w_love = df_training_clean.filter('label == 4').count()/ training_size
+    w_surprize = df_training_clean.filter('label == 5').count()/ training_size
 
     print(w_joy, w_sadness, w_anger, w_fear, w_love, w_surprize)
 
-    df_training_weight = df_training_clean.withColumn("weight", when(F.col("class")==0,w_joy).
-                                                  when(F.col("class")==1,w_sadness).
-                                                  when(F.col("class")==2,w_anger).
-                                                  when(F.col("class")==3,w_fear).
-                                                  when(F.col("class")==4,w_love).
+    df_training_weight = df_training_clean.withColumn("weight", when(F.col("label")==0,w_joy).
+                                                  when(F.col("label")==1,w_sadness).
+                                                  when(F.col("label")==2,w_anger).
+                                                  when(F.col("label")==3,w_fear).
+                                                  when(F.col("label")==4,w_love).
                                                   otherwise(w_surprize))
 
     df_training_weight.show(10)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     ngram = NGram(n=2, inputCol=remover.getOutputCol(),  outputCol="ngrams")
     hashingTF = HashingTF(inputCol="ngrams", outputCol="rawFeatures", numFeatures=10000)
     idf = IDF(inputCol=countVectorizer.getOutputCol(), outputCol="featuresIDF")
-    selector = ChiSqSelector(numTopFeatures=200, featuresCol=idf.getOutputCol(), outputCol="features", labelCol="class")
+    selector = ChiSqSelector(numTopFeatures=200, featuresCol=idf.getOutputCol(), outputCol="features", labelCol="label")
     # Crate a preprocessing pipeline wiht 5 stages
     pipeline_2 = Pipeline(stages=[tokenizer,remover,ngram, hashingTF, idf, selector])
     # Learn the data preprocessing model

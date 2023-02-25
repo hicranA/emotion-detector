@@ -4,7 +4,9 @@ from pyspark.ml.classification import LinearSVC, OneVsRest
 from pyspark.ml import Pipeline
 #evaluation
 from pyspark.mllib.evaluation import MultilabelMetrics
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.mllib.evaluation import MulticlassMetrics
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 
 def m_metrics_l(ml_model,test_data):
     predictions = ml_model.transform(test_data).cache()
@@ -34,16 +36,37 @@ if __name__ == "__main__":
     print(df_testing_m1.show(5))
 
     import time
-    classifier = LinearSVC(maxIter=10, regParam=0.1, featuresCol = "featuresIDF", weightCol="weight", labelCol="class")
+    classifier = LinearSVC(maxIter=10, regParam=0.1, featuresCol = "featuresIDF", weightCol="weight", labelCol="label")
     # Define OneVsRest strategy
-    ovr = OneVsRest(classifier=classifier, labelCol="class", featuresCol="featuresIDF", weightCol="weight")
+    ovr = OneVsRest(classifier=classifier, labelCol="label", featuresCol="featuresIDF", weightCol="weight")
     pipeline = Pipeline(stages=[ovr])
     start = time.time()
     print(f"Training started.")
     model = pipeline.fit(df_training_m1)
     print(f"Model created in {time.time()-start:.2f}s.")
-    m_metrics_l(model,df_testing_m1)
+    m_metrics_l(model,df_val_m1)
     print(f"Total time {time.time()-start:.2f}s.")
+
+    evaluator = MulticlassClassificationEvaluator(predictionCol="prediction", labelCol="label", metricName="f1")
+
+    # Define the hyperparameter grid
+    param_grid = ParamGridBuilder() \
+     .addGrid(classifier.maxIter, [10, 50, 100]) \
+        .build()
+    
+    # Define the cross-validator
+    cv = CrossValidator(estimator=pipeline, estimatorParamMaps=param_grid, evaluator=evaluator, numFolds=3)
+
+    # Fit the cross-validator to the training set
+    cv_model = cv.fit(df_training_m1)
+
+    # Evaluate the best model on the validation set
+    best_model = cv_model.bestModel
+    # Evaluate the best model on the validation set
+    best_model = cv_model.bestModel
+    predictions = best_model.transform(df_val_m1)
+    f1 = evaluator.evaluate(predictions)
+    print("f1 on validation set for best model:", f1)
 
 
 
