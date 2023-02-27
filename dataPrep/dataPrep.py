@@ -22,6 +22,7 @@ from pyspark.ml.feature import NGram
 
 
 
+
 def readFile(file_path):
     df_row = spark.read.csv(file_path)
     # print("original")
@@ -139,12 +140,13 @@ if __name__ == "__main__":
 
     # data model 2 
     print("stage 2")
-    ngram = NGram(n=2, inputCol=remover.getOutputCol(),  outputCol="ngrams")
-    hashingTF = HashingTF(inputCol="ngrams", outputCol="rawFeatures", numFeatures=10000)
-    idf = IDF(inputCol=countVectorizer.getOutputCol(), outputCol="featuresIDF")
-    selector = ChiSqSelector(numTopFeatures=200, featuresCol=idf.getOutputCol(), outputCol="features", labelCol="label")
+    #ngram = NGram(n=2, inputCol=remover.getOutputCol(),  outputCol="ngrams")
+    #hashingTF = HashingTF(inputCol="ngrams", outputCol="rawFeatures", numFeatures=1000)
+    # countVectorizer = CountVectorizer(inputCol=ngram.getOutputCol(), outputCol="rawFeatures", vocabSize=1000)
+    # idf = IDF(inputCol=countVectorizer.getOutputCol(), outputCol="featuresIDF")
+    selector = ChiSqSelector(numTopFeatures=300, featuresCol=idf.getOutputCol(), outputCol="features", labelCol="label")
     # Crate a preprocessing pipeline wiht 5 stages
-    pipeline_2 = Pipeline(stages=[tokenizer,remover,ngram, hashingTF, idf, selector])
+    pipeline_2 = Pipeline(stages=[tokenizer,remover,countVectorizer, idf, selector])
     # Learn the data preprocessing model
     data_model_2 = pipeline_2.fit(df_training_weight)
 
@@ -155,18 +157,34 @@ if __name__ == "__main__":
 
     #data model 3 row text no cleaning only transforming to numbers 
     #Tokenize the text
-    tokenizer = Tokenizer(inputCol="text", outputCol="words")
+    tokenizer3 = Tokenizer(inputCol="text", outputCol="words")
     # Create a count vectoriser
-    countVectorizer = CountVectorizer(inputCol=tokenizer.getOutputCol(), outputCol="rawFeatures", vocabSize=1000)
+    countVectorizer3 = CountVectorizer(inputCol=tokenizer3.getOutputCol(), outputCol="rawFeatures", vocabSize=1000)
+    idf3 = IDF(inputCol=countVectorizer3.getOutputCol(), outputCol="featuresIDF")
     # Create pipeline
-    pipeline_3= Pipeline(stages=[tokenizer,countVectorizer, idf])
+    pipeline_3= Pipeline(stages=[tokenizer3,countVectorizer3, idf3])
     #create a data model 
     data_model_3  = pipeline_3.fit(df_training_weight)
-
     # Transform 3 
     transformed_training_p3= data_model_3.transform(df_training_weight)
     transformed_test_p3 = data_model_3.transform(df_testing_clean)
     transformed_val_p3 = data_model_3.transform(df_val_clean)
+
+    #data model 4 row text no cleaning only transforming to numbers 
+    #Tokenize the text
+    ngram = NGram(n=2, inputCol=remover.getOutputCol(),  outputCol="ngrams")
+    # Create a count vectoriser
+    hashingTF = HashingTF(inputCol="ngrams", outputCol="rawFeatures", numFeatures=1000)
+    idf2 = IDF(inputCol=hashingTF.getOutputCol(), outputCol="featuresIDF")
+    # Create pipeline
+    pipeline_4= Pipeline(stages=[ngram,hashingTF, idf2])
+    #create a data model 
+    data_model_4  = pipeline_3.fit(df_training_weight)
+     # Transform 4
+    transformed_training_p4= data_model_4.transform(df_training_weight)
+    transformed_test_p4 = data_model_4.transform(df_testing_clean)
+    transformed_val_p4 = data_model_4.transform(df_val_clean)
+
 
     # save the PySpark DataFrame to a Parquet file
     #data model 1
@@ -181,6 +199,10 @@ if __name__ == "__main__":
     transformed_training_p3.write.parquet("data/transformed_training_p3.parquet")
     transformed_test_p3.write.parquet("data/transformed_test_p3.parquet")
     transformed_val_p3.write.parquet("data/transformed_val_p3.parquet")
+    #data model 4
+    transformed_training_p4.write.parquet("data/transformed_training_p4.parquet")
+    transformed_test_p4.write.parquet("data/transformed_test_p4.parquet")
+    transformed_val_p4.write.parquet("data/transformed_val_p4.parquet")
 
 
 
