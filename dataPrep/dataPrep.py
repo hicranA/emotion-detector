@@ -171,15 +171,18 @@ if __name__ == "__main__":
     transformed_val_p3 = data_model_3.transform(df_val_clean)
 
     #data model 4 row text no cleaning only transforming to numbers 
-    #Tokenize the text
-    ngram = NGram(n=2, inputCol=remover.getOutputCol(),  outputCol="ngrams")
+    # Tokenize the review text
+    tokenizer_4 = Tokenizer(inputCol="text_c", outputCol="words",)
+    # Remove stop words
+    remover_4 = StopWordsRemover(inputCol=tokenizer_4.getOutputCol(), outputCol="filtered")
+    ngram = NGram(n=2, inputCol=remover_4.getOutputCol(),  outputCol="ngrams")
     # Create a count vectoriser
     hashingTF = HashingTF(inputCol="ngrams", outputCol="rawFeatures", numFeatures=1000)
     idf2 = IDF(inputCol=hashingTF.getOutputCol(), outputCol="featuresIDF")
     # Create pipeline
-    pipeline_4= Pipeline(stages=[ngram,hashingTF, idf2])
+    pipeline_4= Pipeline(stages=[tokenizer_4, remover_4,ngram,hashingTF, idf2])
     #create a data model 
-    data_model_4  = pipeline_3.fit(df_training_weight)
+    data_model_4  = pipeline_4.fit(df_training_weight)
      # Transform 4
     transformed_training_p4= data_model_4.transform(df_training_weight)
     transformed_test_p4 = data_model_4.transform(df_testing_clean)
