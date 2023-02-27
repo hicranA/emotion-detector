@@ -14,6 +14,8 @@ from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.classification import NaiveBayes
 from pyspark.sql.window import Window
+from pyspark.ml.classification import MultilayerPerceptronClassifier
+from pyspark.ml.feature import Imputer
 
 import time
 def m_metrics_l(ml_model,test_data):
@@ -70,6 +72,21 @@ def nBMaker(df, df_val, dm):
     training_time = time.time()-start
     precision, recall , f1Score,  metrics = m_metrics_l(model,df_val)
     return precision, recall, f1Score, metrics, training_time
+def mPMaker(df, df_val):
+    # drop rows with missing values
+    df_1 = df.na.drop()
+    df_val_1 = df_val.na.drop()
+    layers = [1000, 30, 2]
+    mp = MultilayerPerceptronClassifier(maxIter=10,labelCol="label" ,layers=layers,featuresCol = "featuresIDF", blockSize=128, seed=1234)
+    start = time.time()
+    pipeline = Pipeline(stages=[mp])
+    print(f"Training started.")
+    model = pipeline.fit(df_1)
+    training_time = time.time()-start
+    precision, recall , f1Score,  metrics = m_metrics_l(model,df_val_1)
+    return precision, recall, f1Score, metrics, training_time
+
+
     
 # create a SparkSession object
 
@@ -93,6 +110,9 @@ if __name__ == "__main__":
                                      round(recall_svm,3), 
                                      round(f1Score_svm,3))], 
                                      ["dataModel", "modelName", "trainingTime", "precision","recall", "f1Score"])
+
+    #test code , it is giving an error 
+    # precision_mp, recall_mp, f1Score_mp, metrics_mp, training_time_mp = mPMaker(df= df_training_m1, df_val=df_val_m1)
 
 
     precision_lr, recall_lr , f1Score_lr , metrics_lr, training_time_lr = logRegmaker(df= df_training_m1, df_val=df_val_m1, dm=0)
