@@ -16,7 +16,7 @@ from pyspark.ml.classification import NaiveBayes
 from pyspark.sql.window import Window
 from pyspark.ml.classification import MultilayerPerceptronClassifier
 from pyspark.ml.feature import Imputer
-
+import matplotlib.pyplot as plt
 import time
 def m_metrics_l(ml_model,test_data):
     predictions = ml_model.transform(test_data).cache()
@@ -266,7 +266,13 @@ if __name__ == "__main__":
     df_result_union = results_df_1.union(results_df_2).union(results_df_3).union(results_df_4).union(results_df_5)\
                             .union(results_df_6).union(results_df_7).union(results_df_8).union(results_df_9)\
                               .union(results_df_10).union(results_df_11).union(results_df_12)
- 
-    df_result_union.show()
+    
+    print(df_result_union.show())
+    ModelNumn= ["df1", "df2", "df3", "df4", "df5", "df6", "df7", "df8", "df9", "df10", "df11", "df12"]
+    df = df_result_union.toPandas()
+    df["dataFrameNo"]= ModelNumn
+    df.to_csv("modelselection.csv", index=False)
 
-
+   
+    # # display plot
+    # mp.show()
