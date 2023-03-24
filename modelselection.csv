@@ -1,0 +1,13 @@
+dataModel,modelName,trainingTime,precision,recall,f1Score,dataFrameNo
+countVectorizer+iDF,svm,17.888,0.86,0.82,0.828,df1
+countVectorizer+iDF,lr,1.548,0.862,0.804,0.817,df2
+countVectorizer+iDF,nb,1.64,0.806,0.806,0.805,df3
+countVectorizer+iDF+chisquare,svm,11.132,0.858,0.82,0.827,df4
+countVectorizer+iDF+chisquare,lr,1.023,0.861,0.802,0.814,df5
+countVectorizer+iDF+chisquare,nb,0.473,0.836,0.831,0.83,df6
+unCleanData+countVectorizer+iDF,svm,7.98,0.873,0.845,0.85,df7
+unCleanData+countVectorizer+iDF,lr,1.103,0.869,0.818,0.829,df8
+unCleanData+countVectorizer+iDF,nb,0.422,0.83,0.831,0.83,df9
+ngram+hashingtf+iDF,svm,10.965,0.685,0.435,0.524,df10
+ngram+hashingtf+iDF,lr,1.053,0.689,0.436,0.527,df11
+ngram+hashingtf+iDF,nb,0.416,0.416,0.42,0.417,df12
