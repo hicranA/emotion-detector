@@ -5,8 +5,9 @@ This project aims to develop a machine learning model for emotion classification
 ## Installation and Usage:
 To install and run the Emotion Classification project, you will need to have Python 3.10 or higher and the following libraries:
 
-* Pyspark
-* Numpy 
+* pyspark
+* numpy 
+* spacy
 
 Please see the steps below for the installations. 
 
