@@ -54,7 +54,8 @@ I would like to thank Professor Dimitar Trajanov and my facilatators in MET CS 7
 Next I will include neural network, tensorflow library implementation and compare the existing result and lastly I am planning to use the machine learning model to predict a real world data like customer feedback and rates. 
 
 ## License:
-This project is released under the MIT License.
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
+You are free to share, copy, and redistribute this project, as well as adapt it for non-commercial purposes, as long as you give credit to the original author(s) and include a link to the license.For more information about the CC BY-NC 4.0 license, please see [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## List of files:
 - Data Folder : saved data
